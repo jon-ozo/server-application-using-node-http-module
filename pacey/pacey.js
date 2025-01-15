@@ -22,9 +22,10 @@ class Pacey {
 				return res;
 			};
 
-			res.json = (obj) => {
+			res.json = async (obj) => {
 				res.setHeader('Content-Type', ['application/json']);
-				res.end(JSON.stringify(obj));
+				await pipeline(JSON.stringify(obj), res);
+				// res.end(JSON.stringify(obj));
 			};
 
 			if (!this.routes[req.method.toLowerCase() + ' ' + req.url]) {

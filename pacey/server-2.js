@@ -75,8 +75,6 @@ const PORT = 9002;
 const server = new Pacey();
 
 server.route('get', '/', (req, res) => {
-	console.log('Server 2 is handling this request');
-
 	res.sendFile(join(__dirname, 'index.html'), 'text/html');
 });
 

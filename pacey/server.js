@@ -1,6 +1,8 @@
 const Pacey = require('./pacey');
 const { join } = require('node:path');
 
+const SESSIONS = [];
+
 const USERS = [
 	{ id: 1, name: 'James Brown', username: 'jbrown', password: 'oolala' },
 	{ id: 2, name: 'Jenny Beau', username: 'jenny', password: 'yayyayyaaa' },
@@ -82,16 +84,16 @@ server.route('get', '/login', (req, res) => {
 	res.sendFile(join(__dirname, 'index.html'), 'text/html');
 });
 
+server.route('get', '/profile', (req, res) => {
+	res.sendFile(join(__dirname, 'index.html'), 'text/html');
+});
+
 server.route('get', '/style.css', (req, res) => {
 	res.sendFile(join(__dirname, 'public', 'style.css'), 'text/css');
 });
 
 server.route('get', '/index.js', (req, res) => {
 	res.sendFile(join(__dirname, 'public', 'index.js'), 'text/javascript');
-});
-
-server.route('get', '/api/user', (req, res) => {
-	res.status(200).json(USERS);
 });
 
 server.route('post', '/api/login', (req, res) => {
@@ -110,11 +112,30 @@ server.route('post', '/api/login', (req, res) => {
 		// const pwd = USERS.find(user => user.password === password);
 
 		if (user && user.password === password) {
+			const token = Math.floor(Math.random() * 100000000).toString();
+			const session = { userId: user.id, token };
+
+			SESSIONS.push(session);
+
+			res.setHeader('Set-Cookie', `token=${token}; Path=/`);
 			res.status(200).json({ message: 'Successfully logged in' });
 		} else {
 			res.status(401).json({ error: 'Invalid username or password' });
 		}
 	});
+});
+
+server.route('get', '/api/user', (req, res) => {
+	const token = req.headers.cookie?.split('=')[1];
+	console.log(token);
+
+	const checkTokenExists = SESSIONS.find((session) => session.token === token);
+
+	if (checkTokenExists) {
+		res.status(200).json({ message: 'Authorized user' });
+	} else {
+		res.status(401).json({ error: 'Unauthorized user' });
+	}
 });
 
 server.route('get', '/api/posts', (req, res) => {
