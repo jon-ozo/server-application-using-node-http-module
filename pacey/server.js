@@ -76,6 +76,66 @@ const POSTS = [
 const PORT = 3000;
 const server = new Pacey();
 
+// run authentication
+server.middleware((req, res, next) => {
+	const routesToAuthenticate = [
+		'GET /api/user',
+		'POST /api/posts',
+		'PUT /api/user',
+		'DELETE /api/logout',
+	];
+
+	if (routesToAuthenticate.indexOf(req.method + ' ' + req.url) !== -1) {
+		if (req.headers.cookie) {
+			const token = req.headers.cookie?.split('=')[1];
+			const checkTokenExists = SESSIONS.find(
+				(session) => session.token === token
+			);
+
+			if (checkTokenExists) {
+				req.userId = checkTokenExists.userId;
+				next();
+			}
+		}
+
+		return res.send(401).json({ error: 'Unauthroized access denied' });
+	} else {
+		next();
+	}
+});
+
+// parse json data
+server.middleware((req, res, next) => {
+	if ((req.headers['content-type'] = 'application/json')) {
+		let body = '';
+
+		req.on('data', (chunk) => {
+			body += chunk.toString('utf-8');
+		});
+
+		req.on('end', () => {
+			req.body = JSON.parse(body);
+		});
+
+		next();
+	} else {
+		next();
+	}
+});
+
+server.middleware((req, res, next) => {
+	console.log('third middleware function');
+
+	next();
+});
+
+server.middleware((req, res, next) => {
+	console.log('fourth middleware function');
+
+	next();
+});
+
+// add routes
 server.route('get', '/', (req, res) => {
 	res.sendFile(join(__dirname, 'index.html'), 'text/html');
 });
@@ -92,51 +152,40 @@ server.route('get', '/style.css', (req, res) => {
 	res.sendFile(join(__dirname, 'public', 'style.css'), 'text/css');
 });
 
-server.route('get', '/index.js', (req, res) => {
-	res.sendFile(join(__dirname, 'public', 'index.js'), 'text/javascript');
+server.route('get', '/scripts.js', (req, res) => {
+	res.sendFile(join(__dirname, 'public', 'scripts.js'), 'text/javascript');
 });
+
+// ------------------------------------------------------
+// ------------------------------------------------------
 
 server.route('post', '/api/login', (req, res) => {
-	let body = '';
+	const { username, password } = req.body;
+	const user = USERS.find((user) => user.username === username);
 
-	req.on('data', (chunk) => {
-		body += chunk.toString('utf-8');
-	});
+	if (user && user.password === password) {
+		const token = Math.floor(Math.random() * 100000000).toString();
+		const session = { userId: user.id, token };
 
-	req.on('end', () => {
-		body = JSON.parse(body);
+		SESSIONS.push(session);
 
-		const { username, password } = body;
-
-		const user = USERS.find((user) => user.username === username);
-		// const pwd = USERS.find(user => user.password === password);
-
-		if (user && user.password === password) {
-			const token = Math.floor(Math.random() * 100000000).toString();
-			const session = { userId: user.id, token };
-
-			SESSIONS.push(session);
-
-			res.setHeader('Set-Cookie', `token=${token}; Path=/`);
-			res.status(200).json({ message: 'Successfully logged in' });
-		} else {
-			res.status(401).json({ error: 'Invalid username or password' });
-		}
-	});
-});
-
-server.route('get', '/api/user', (req, res) => {
-	const token = req.headers.cookie?.split('=')[1];
-	console.log(token);
-
-	const checkTokenExists = SESSIONS.find((session) => session.token === token);
-
-	if (checkTokenExists) {
-		res.status(200).json({ message: 'Authorized user' });
+		res.setHeader('Set-Cookie', `token=${token}; Path=/`);
+		res.status(200).json({ message: 'Successfully logged in' });
 	} else {
-		res.status(401).json({ error: 'Unauthorized user' });
+		res.status(401).json({ error: 'Invalid username or password' });
 	}
 });
+
+server.route('delete', '/api/logout', (req, res) => {});
+
+server.route('get', '/api/user', (req, res) => {
+	const user = USERS.find((user) => user.id === req.userId);
+	res.status(200).json({ username: user.username, name: user.name });
+});
+
+server.route('put', '/api/user', (req, res) => {});
+
+server.route('post', '/api/posts', (req, res) => {});
 
 server.route('get', '/api/posts', (req, res) => {
 	const posts = POSTS.map((post) => {

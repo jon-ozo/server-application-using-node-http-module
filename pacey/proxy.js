@@ -9,16 +9,16 @@ const mainServers = [
 	{ host: 'localhost', port: 9002 },
 ];
 
+// Select a server to route the incoming request to (using round-robin algorithm)
+let mainServer = mainServers.shift();
+mainServers.push(mainServer);
+
 // Create the proxy server
 const proxy = createServer();
 
 proxy.on('request', (clientRequest, proxyResponse) => {
-	// Select a server to route the incoming request to (using round-robin algorithm)
-	let mainServer = mainServers.shift();
-	mainServers.push(mainServer);
-
 	// Send request to one of the main servers
-	const proxyRequest = request({
+	let proxyRequest = request({
 		host: mainServer.host,
 		port: mainServer.port,
 		path: clientRequest.url,
