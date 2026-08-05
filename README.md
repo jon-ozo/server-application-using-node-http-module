@@ -1,0 +1,1 @@
+This is a project from a node course taught by Joseph Heidari. It is a really interesting piece that teaches how HTTP really works. I will be looking to develop this further in no distant future - add useful features and turn into an open source. 
